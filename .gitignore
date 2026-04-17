@@ -1,0 +1,16 @@
+# Xcode / Swift Package / macOS
+.DS_Store
+xcuserdata/
+xcshareddata/
+.build/
+.swiftpm/xcode/
+.swiftpm/security/
+*.xcuserstate
+*.xcworkspace
+build/
+DerivedData/
+
+# API Keys & Secrets
+Sources/Guide/Config.swift
+Config.swift
+.env
