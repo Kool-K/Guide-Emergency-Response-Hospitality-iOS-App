@@ -18,6 +18,22 @@
 
 ---
 
+## 🧠 Our Approach
+
+- **AI-Powered Real-time Safety**: We leverage **Google Gemini 3 Flash** to provide context-aware safety instructions. By feeding the model the latest hotel blueprints and security protocols, Guide provides guests with the most efficient route and procedure to safety.
+- **Zero-Latency Fallbacks**: Critical emergency scenarios (Fire, Medical, Earthquake) are bolstered with **Hardcoded Quick Response Fallbacks (QRF)**. This ensures that even in the face of API latency or network degradation, guests receive instant, life-saving advice.
+- **Real-time Data Fabric**: We utilize **Supabase** for its robust real-time synchronization capabilities. SOS signals, staff broadcasts, and blueprint updates propagate through the network in milliseconds to ensure every second counts.
+- **Visual Intelligence**: Evacuation blueprints are presented via a custom-built zoomable interface, allowing guests to identify their exact location and nearest stairwells with high-fidelity precision.
+
+## 📋 Key Assumptions
+
+- **Connectivity**: Guide assumes that both Guest and Staff devices have an active data connection (Wi-Fi or Cellular) to facilitate API routing and binary sync with the cloud.
+- **Permissions**: The application assumes that users provide **Location Services** authorization to enable the SOS signal and mapping features accurately.
+- **Configuration**: It is assumed that the hotel management has provided a valid evacuation blueprint image to the system to ensure guests have visual guidance.
+- **API Availability**: While the app has hardcoded fallbacks, the full intelligent assistant assumes that the **Google Gemini API** is reachable and configured with a valid key.
+
+---
+
 ## 🚀 How to Run Locally
 
 You must configure your local environment API keys before launching the app in Xcode or Swift Playgrounds. 
