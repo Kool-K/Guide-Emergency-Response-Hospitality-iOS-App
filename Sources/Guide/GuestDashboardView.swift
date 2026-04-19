@@ -1,58 +1,135 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Zoomable Image View
-// MARK: - Enhanced Zoomable Image View
-struct ZoomableImageView: View {
-    let uiImage: UIImage
-    @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
-    @State private var offset: CGSize = .zero
-    @State private var lastOffset: CGSize = .zero
+// MARK: - Zoomable Image View (UIScrollView-backed for reliable pinch-to-zoom)
 
-    var body: some View {
-        GeometryReader { geometry in
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFit()
-                .scaleEffect(scale)
-                .offset(offset)
-                .gesture(
-                    // 1. Handle Panning
-                    DragGesture()
-                        .onChanged { value in
-                            offset = CGSize(
-                                width: lastOffset.width + value.translation.width,
-                                height: lastOffset.height + value.translation.height
-                            )
-                        }
-                        .onEnded { _ in
-                            lastOffset = offset
-                        }
+/// Wraps UIScrollView for native, buttery-smooth pinch-to-zoom and pan.
+/// Double-tap toggles between 1× and 3× zoom. Supports 1×–6× range.
+struct ZoomableImageView: UIViewRepresentable {
+    let uiImage: UIImage
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = UIScrollView()
+        scrollView.delegate = context.coordinator
+        scrollView.maximumZoomScale = 6.0
+        scrollView.minimumZoomScale = 1.0
+        scrollView.bouncesZoom = true
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.backgroundColor = .clear
+
+        // ImageView sized to the actual image pixels — scroll view handles the rest
+        let imageView = UIImageView(image: uiImage)
+        imageView.contentMode = .scaleAspectFit
+        imageView.clipsToBounds = true
+        scrollView.addSubview(imageView)
+
+        context.coordinator.imageView = imageView
+        context.coordinator.scrollView = scrollView
+
+        // Double-tap to toggle zoom
+        let doubleTap = UITapGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleDoubleTap(_:))
+        )
+        doubleTap.numberOfTapsRequired = 2
+        scrollView.addGestureRecognizer(doubleTap)
+
+        return scrollView
+    }
+
+    func updateUIView(_ scrollView: UIScrollView, context: Context) {
+        guard let imageView = context.coordinator.imageView else { return }
+        let boundsSize = scrollView.bounds.size
+        guard boundsSize.width > 0, boundsSize.height > 0 else { return }
+
+        let imageSize = uiImage.size
+        guard imageSize.width > 0, imageSize.height > 0 else { return }
+
+        // Set imageView to actual image size (scroll view will scale it)
+        imageView.frame = CGRect(origin: .zero, size: imageSize)
+        scrollView.contentSize = imageSize
+
+        // Calculate the scale that fits the image perfectly in the view
+        let scaleW = boundsSize.width / imageSize.width
+        let scaleH = boundsSize.height / imageSize.height
+        let fitScale = min(scaleW, scaleH)
+
+        // Only reconfigure zoom scales when layout changes (avoid resetting user zoom)
+        if context.coordinator.lastBoundsSize != boundsSize {
+            context.coordinator.lastBoundsSize = boundsSize
+
+            scrollView.minimumZoomScale = fitScale
+            scrollView.maximumZoomScale = max(fitScale * 6, 3.0)
+            scrollView.zoomScale = fitScale
+        }
+
+        centerImage(in: scrollView)
+    }
+
+    static func centerImage(in scrollView: UIScrollView) {
+        guard let imageView = scrollView.subviews.first as? UIImageView else { return }
+        let boundsSize = scrollView.bounds.size
+        let contentSize = scrollView.contentSize
+        let zoomScale = scrollView.zoomScale
+
+        let scaledW = contentSize.width * zoomScale
+        let scaledH = contentSize.height * zoomScale
+
+        let offsetX = max((boundsSize.width - scaledW) / 2, 0)
+        let offsetY = max((boundsSize.height - scaledH) / 2, 0)
+
+        imageView.frame.origin = CGPoint(x: offsetX, y: offsetY)
+    }
+
+    private func centerImage(in scrollView: UIScrollView) {
+        ZoomableImageView.centerImage(in: scrollView)
+    }
+
+    // MARK: - Coordinator
+
+    class Coordinator: NSObject, UIScrollViewDelegate {
+        let parent: ZoomableImageView
+        weak var imageView: UIImageView?
+        weak var scrollView: UIScrollView?
+        var lastBoundsSize: CGSize = .zero
+
+        init(_ parent: ZoomableImageView) {
+            self.parent = parent
+        }
+
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            return imageView
+        }
+
+        func scrollViewDidZoom(_ scrollView: UIScrollView) {
+            ZoomableImageView.centerImage(in: scrollView)
+        }
+
+        @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
+            guard let scrollView = scrollView else { return }
+
+            if scrollView.zoomScale > scrollView.minimumZoomScale + 0.01 {
+                // Zoom out to fit
+                scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
+            } else {
+                // Zoom in to 3× at the tapped point
+                let location = gesture.location(in: imageView)
+                let targetScale = min(scrollView.minimumZoomScale * 3, scrollView.maximumZoomScale)
+                let size = CGSize(
+                    width: scrollView.bounds.width / targetScale,
+                    height: scrollView.bounds.height / targetScale
                 )
-                .simultaneousGesture(
-                    // 2. Handle Pinching (simultaneously with drag)
-                    MagnificationGesture()
-                        .onChanged { value in
-                            scale = lastScale * value
-                        }
-                        .onEnded { _ in
-                            if scale < 1.0 { scale = 1.0 }
-                            if scale > 5.0 { scale = 5.0 }
-                            lastScale = scale
-                        }
+                let origin = CGPoint(
+                    x: location.x - size.width / 2,
+                    y: location.y - size.height / 2
                 )
-                .onTapGesture(count: 2) {
-                    // 3. Double tap to reset
-                    withAnimation(.spring()) {
-                        scale = 1.0
-                        lastScale = 1.0
-                        offset = .zero
-                        lastOffset = .zero
-                    }
-                }
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .clipped() // Prevents the image from overlapping the rest of the UI
+                scrollView.zoom(to: CGRect(origin: origin, size: size), animated: true)
+            }
         }
     }
 }
