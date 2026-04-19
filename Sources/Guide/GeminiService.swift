@@ -4,9 +4,18 @@ class GeminiService: ObservableObject {
     static let shared = GeminiService()
     
     private let apiKey = Config.geminiAPIKey
-    // Change "gemini-3.0-flash" to "gemini-3-flash-preview"
-    private let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
-    func generateSmartResponse(prompt: String, context: String, conversationHistory: [[String: Any]] = []) async throws -> String {
+    private let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    
+    /// Generate a smart response, optionally including a hotel blueprint image for spatial guidance.
+    /// When `blueprintBase64` is provided, Gemini Vision analyses the blueprint to give
+    /// location-specific evacuation directions. If the image is not a valid building plan,
+    /// Gemini is instructed to ignore it and respond using its own safety knowledge.
+    func generateSmartResponse(
+        prompt: String,
+        context: String,
+        conversationHistory: [[String: Any]] = [],
+        blueprintBase64: String? = nil
+    ) async throws -> String {
         // Hardcoded instant responses for critical scenarios to bypass API delay/connection issues
         let lowercasedPrompt = prompt.lowercased()
         if lowercasedPrompt.contains("fire") {
@@ -35,15 +44,40 @@ class GeminiService: ObservableObject {
             contents.append(entry)
         }
         
-        // Build user prompt with system context baked in (more compatible)
+        // --- System preamble adapts based on blueprint availability ---
+        let blueprintInstruction: String
+        if blueprintBase64 != nil {
+            blueprintInstruction = """
+            An image has been attached. First, determine whether this image is a valid hotel/building \
+            blueprint, floor plan, or evacuation map. \
+            - If YES: Reference specific locations, exits, stairwells, and rooms visible in the \
+            blueprint when answering the user's question. Provide spatially-aware directions \
+            (e.g., "turn left past Room 204 toward the east stairwell"). \
+            - If NO (e.g., it is a selfie, landscape, meme, or any non-blueprint image): \
+            Completely IGNORE the image and answer using only your own safety knowledge. \
+            Do NOT mention that an irrelevant image was provided.
+            """
+        } else {
+            blueprintInstruction = """
+            No hotel blueprint is currently available. Provide general safety guidance based \
+            on your own knowledge. Advise the user to check for physical exit signs and \
+            illuminated evacuation routes in the building.
+            """
+        }
+        
         let systemPreamble = """
         You are "Guide", a calm safety assistant in a hotel crisis app.
-        - Guide users to safety during emergencies (fire, earthquake, flood)
+        - Guide users to safety during emergencies (fire, earthquake, flood, security threats)
         - Provide clear, step-by-step evacuation instructions
         - Offer first aid guidance and locate exits
         - Be concise, calm, and reassuring. Keep responses under 200 words.
         - If unsure, advise calling 112 (India emergency).
+        
+        \(blueprintInstruction)
         """
+        
+        // --- Build the user message parts (text + optional image) ---
+        var userParts: [[String: Any]] = []
         
         let fullPrompt: String
         if contents.isEmpty {
@@ -58,9 +92,21 @@ class GeminiService: ObservableObject {
             fullPrompt = prompt
         }
         
+        userParts.append(["text": fullPrompt])
+        
+        // Attach blueprint image for Gemini Vision (multimodal) if available
+        if let base64 = blueprintBase64, !base64.isEmpty {
+            userParts.append([
+                "inline_data": [
+                    "mime_type": "image/jpeg",
+                    "data": base64
+                ]
+            ])
+        }
+        
         contents.append([
             "role": "user",
-            "parts": [["text": fullPrompt]]
+            "parts": userParts
         ])
         
         let body: [String: Any] = [

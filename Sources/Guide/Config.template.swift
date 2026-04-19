@@ -2,11 +2,11 @@ import Foundation
 
 struct Config {
     // SUPABASE CONFIGURATION
-    // Replace these values with your actual project URL and Anon Key from Supabase Dashboard
-    static let supabaseURL = "YOUR_SUPABASE_URL_HERE"
-    static let supabaseAnonKey = "YOUR_SUPABASE_ANON_KEY_HERE"
+    // Get your project URL and Anon Key from: https://supabase.com/dashboard → Settings → API
+    static let supabaseURL = "YOUR_SUPABASE_PROJECT_URL"
+    static let supabaseAnonKey = "YOUR_SUPABASE_ANON_KEY"
     
     // GEMINI CONFIGURATION
-    // Replace with your actual Gemini API Key from Google AI Studio
-    static let geminiAPIKey = "YOUR_GEMINI_API_KEY_HERE"
+    // Get your API key from: https://aistudio.google.com/apikey
+    static let geminiAPIKey = "YOUR_GEMINI_API_KEY"
 }

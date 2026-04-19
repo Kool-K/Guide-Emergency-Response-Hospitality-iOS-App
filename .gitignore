@@ -14,3 +14,9 @@ DerivedData/
 Sources/Guide/Config.swift
 Config.swift
 .env
+
+# Helper scripts (not part of the app)
+*.py
+
+# Dependency lock (regenerated on build)
+Package.resolved

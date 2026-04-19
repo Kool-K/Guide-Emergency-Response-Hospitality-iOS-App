@@ -13,6 +13,8 @@ struct SmartAssistantView: View {
     @State private var isLoading: Bool = false
     @State private var conversationHistory: [[String: Any]] = []
     @StateObject private var locationManager = LocationManager()
+    @State private var cachedBlueprint: String? = nil
+    @State private var blueprintFetched = false
     private let typingID = UUID()
     
     let quickActions = [
@@ -244,12 +246,27 @@ struct SmartAssistantView: View {
         }
         
         do {
-            // Fetch context (blueprints/manuals)
+            // Fetch context (text manuals)
             var context = ""
             do {
                 context = try await SupabaseService.shared.fetchBlueprintsText()
             } catch {
-                print("No context available: \(error)")
+                print("No text context available: \(error)")
+            }
+            
+            // Fetch blueprint image (once per session, then cache)
+            if !blueprintFetched {
+                blueprintFetched = true
+                do {
+                    if let base64 = try await SupabaseService.shared.downloadBlueprint() {
+                        cachedBlueprint = base64
+                        print("Blueprint loaded for AI vision analysis")
+                    } else {
+                        print("No blueprint uploaded — assistant will use general knowledge")
+                    }
+                } catch {
+                    print("Blueprint fetch failed: \(error) — falling back to text-only")
+                }
             }
             
             // Include location context
@@ -263,10 +280,11 @@ struct SmartAssistantView: View {
             let aiResponse = try await GeminiService.shared.generateSmartResponse(
                 prompt: userText,
                 context: fullContext,
-                conversationHistory: conversationHistory
+                conversationHistory: conversationHistory,
+                blueprintBase64: cachedBlueprint
             )
             
-            // Update conversation history for multi-turn
+            // Update conversation history for multi-turn (text only for history)
             conversationHistory.append(["role": "user", "parts": [["text": userText]]])
             conversationHistory.append(["role": "model", "parts": [["text": aiResponse]]])
             
