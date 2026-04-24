@@ -295,7 +295,7 @@ struct SmartAssistantView: View {
                 isLoading = false
             }
         } catch {
-            let errorMessage = ChatMessage(text: "I'm having trouble connecting. Please check your internet and try again.", isUser: false)
+            let errorMessage = ChatMessage(text: "I'm having trouble connecting: \(error.localizedDescription)", isUser: false)
             DispatchQueue.main.async {
                 messages.append(errorMessage)
                 isLoading = false

@@ -4,7 +4,7 @@ class GeminiService: ObservableObject {
     static let shared = GeminiService()
     
     private let apiKey = Config.geminiAPIKey
-    private let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    private let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     
     /// Generate a smart response, optionally including a hotel blueprint image for spatial guidance.
     /// When `blueprintBase64` is provided, Gemini Vision analyses the blueprint to give
@@ -32,134 +32,156 @@ class GeminiService: ObservableObject {
             return "ℹ️ GENERAL SAFETY QRF:\nYour safety is our priority. Please review the hotel blueprint using the 'View Hotel Blueprint' button to identify your nearest exit. Always use stairs during an emergency."
         }
         
-        guard let url = URL(string: "\(endpoint)?key=\(apiKey)") else {
-            throw URLError(.badURL)
-        }
-        
-        // Build conversation contents with history
-        var contents: [[String: Any]] = []
-        
-        // Add conversation history
-        for entry in conversationHistory {
-            contents.append(entry)
-        }
-        
-        // --- System preamble adapts based on blueprint availability ---
-        let blueprintInstruction: String
-        if blueprintBase64 != nil {
-            blueprintInstruction = """
-            An image has been attached. First, determine whether this image is a valid hotel/building \
-            blueprint, floor plan, or evacuation map. \
-            - If YES: Reference specific locations, exits, stairwells, and rooms visible in the \
-            blueprint when answering the user's question. Provide spatially-aware directions \
-            (e.g., "turn left past Room 204 toward the east stairwell"). \
-            - If NO (e.g., it is a selfie, landscape, meme, or any non-blueprint image): \
-            Completely IGNORE the image and answer using only your own safety knowledge. \
-            Do NOT mention that an irrelevant image was provided.
-            """
-        } else {
-            blueprintInstruction = """
-            No hotel blueprint is currently available. Provide general safety guidance based \
-            on your own knowledge. Advise the user to check for physical exit signs and \
-            illuminated evacuation routes in the building.
-            """
-        }
-        
-        let systemPreamble = """
-        You are "Guide", a calm safety assistant in a hotel crisis app.
-        - Guide users to safety during emergencies (fire, earthquake, flood, security threats)
-        - Provide clear, step-by-step evacuation instructions
-        - Offer first aid guidance and locate exits
-        - Be concise, calm, and reassuring. Keep responses under 200 words.
-        - If unsure, advise calling 112 (India emergency).
-        
-        \(blueprintInstruction)
-        """
-        
-        // --- Build the user message parts (text + optional image) ---
-        var userParts: [[String: Any]] = []
-        
-        let fullPrompt: String
-        if contents.isEmpty {
-            // First message: include system preamble
-            if context.isEmpty {
-                fullPrompt = "\(systemPreamble)\n\nUser: \(prompt)"
-            } else {
-                fullPrompt = "\(systemPreamble)\n\nContext:\n\(context)\n\nUser: \(prompt)"
-            }
-        } else {
-            // Follow-up: just the user message
-            fullPrompt = prompt
-        }
-        
-        userParts.append(["text": fullPrompt])
-        
-        // Attach blueprint image for Gemini Vision (multimodal) if available
-        if let base64 = blueprintBase64, !base64.isEmpty {
-            userParts.append([
-                "inline_data": [
-                    "mime_type": "image/jpeg",
-                    "data": base64
-                ]
-            ])
-        }
-        
-        contents.append([
-            "role": "user",
-            "parts": userParts
-        ])
-        
-        let body: [String: Any] = [
-            "contents": contents,
-            "generationConfig": [
-                "temperature": 0.7,
-                "maxOutputTokens": 1024
-            ]
+        let models = [
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-3-flash-preview"
         ]
         
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = jsonData
-        request.timeoutInterval = 30
+        var lastErrorMessage = "⚠️ Service unavailable."
         
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
-            print("Gemini API Error [\(httpResponse.statusCode)]: \(errorBody)")
-            // Return a helpful error message directly to the Chat UI
-            if httpResponse.statusCode == 400 {
-                return "⚠️ API configuration error. Please check your Gemini API key in Config.swift."
-            } else if httpResponse.statusCode == 403 {
-                return "⚠️ API key is invalid or expired."
-            } else if httpResponse.statusCode == 404 {
-                return "⚠️ API endpoint missing/wrong model. The selected Gemini model might be blocked or invalid."
-            } else if httpResponse.statusCode == 429 {
-                return "⚠️ Too many requests. Please wait a moment."
+        for model in models {
+            let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent"
+            guard let url = URL(string: "\(endpoint)?key=\(apiKey)") else {
+                throw URLError(.badURL)
             }
-            return "⚠️ Service Error (\(httpResponse.statusCode)): \(errorBody)"
-        }
-        
-        struct GeminiResponse: Decodable {
-            struct Candidate: Decodable {
-                struct Content: Decodable {
-                    struct Part: Decodable {
-                        let text: String
-                    }
-                    let parts: [Part]
+            
+            // Build conversation contents with history
+            var contents: [[String: Any]] = []
+            
+            // Add conversation history
+            for entry in conversationHistory {
+                contents.append(entry)
+            }
+            
+            // --- System preamble adapts based on blueprint availability ---
+            let blueprintInstruction: String
+            if blueprintBase64 != nil {
+                blueprintInstruction = """
+                An image has been attached. First, determine whether this image is a valid hotel/building \
+                blueprint, floor plan, or evacuation map. \
+                - If YES: Reference specific locations, exits, stairwells, and rooms visible in the \
+                blueprint when answering the user's question. Provide spatially-aware directions \
+                (e.g., "turn left past Room 204 toward the east stairwell"). \
+                - If NO (e.g., it is a selfie, landscape, meme, or any non-blueprint image): \
+                Completely IGNORE the image and answer using only your own safety knowledge. \
+                Do NOT mention that an irrelevant image was provided.
+                """
+            } else {
+                blueprintInstruction = """
+                No hotel blueprint is currently available. Provide general safety guidance based \
+                on your own knowledge. Advise the user to check for physical exit signs and \
+                illuminated evacuation routes in the building.
+                """
+            }
+            
+            let systemPreamble = """
+            You are "Guide", a calm safety assistant in a hotel crisis app.
+            - Guide users to safety during emergencies (fire, earthquake, flood, security threats)
+            - Provide clear, step-by-step evacuation instructions
+            - Offer first aid guidance and locate exits
+            - Be concise, calm, and reassuring. Keep responses under 200 words.
+            - If unsure, advise calling 112 (India emergency).
+            
+            \(blueprintInstruction)
+            """
+            
+            // --- Build the user message parts (text + optional image) ---
+            var userParts: [[String: Any]] = []
+            
+            let fullPrompt: String
+            if contents.isEmpty {
+                // First message: include system preamble
+                if context.isEmpty {
+                    fullPrompt = "\(systemPreamble)\n\nUser: \(prompt)"
+                } else {
+                    fullPrompt = "\(systemPreamble)\n\nContext:\n\(context)\n\nUser: \(prompt)"
                 }
-                let content: Content
+            } else {
+                // Follow-up: just the user message
+                fullPrompt = prompt
             }
-            let candidates: [Candidate]?
+            
+            userParts.append(["text": fullPrompt])
+            
+            // Attach blueprint image for Gemini Vision (multimodal) if available
+            if let base64 = blueprintBase64, !base64.isEmpty {
+                userParts.append([
+                    "inline_data": [
+                        "mime_type": "image/jpeg",
+                        "data": base64
+                    ]
+                ])
+            }
+            
+            contents.append([
+                "role": "user",
+                "parts": userParts
+            ])
+            
+            let body: [String: Any] = [
+                "contents": contents,
+                "generationConfig": [
+                    "temperature": 0.7,
+                    "maxOutputTokens": 1024
+                ]
+            ]
+            
+            let jsonData = try JSONSerialization.data(withJSONObject: body)
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = jsonData
+            request.timeoutInterval = 30
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+            
+            if httpResponse.statusCode == 200 {
+                struct GeminiResponse: Decodable {
+                    struct Candidate: Decodable {
+                        struct Content: Decodable {
+                            struct Part: Decodable {
+                                let text: String
+                            }
+                            let parts: [Part]
+                        }
+                        let content: Content
+                    }
+                    let candidates: [Candidate]?
+                }
+                
+                let responseObj = try JSONDecoder().decode(GeminiResponse.self, from: data)
+                return responseObj.candidates?.first?.content.parts.first?.text ?? "I couldn't generate a response. Please try again."
+                
+            } else {
+                let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
+                print("Gemini API Error [\(httpResponse.statusCode)] on model \(model): \(errorBody)")
+                
+                // If it's a transient issue (503, 429), loop and try the next model.
+                if httpResponse.statusCode == 503 || httpResponse.statusCode == 429 || httpResponse.statusCode == 500 {
+                    lastErrorMessage = "⚠️ High demand. Retrying..."
+                    continue
+                }
+                
+                // For non-transient errors (bad key, wrong config), return the specific error immediately
+                if httpResponse.statusCode == 400 {
+                    return "⚠️ API configuration error. Please check your Gemini API key in Config.swift."
+                } else if httpResponse.statusCode == 403 {
+                    return "⚠️ API key is invalid or expired."
+                } else if httpResponse.statusCode == 404 {
+                    return "⚠️ API endpoint missing/wrong model. The selected Gemini model might be blocked or invalid."
+                }
+                
+                // If it's another 4xx error, don't retry, just return it.
+                return "⚠️ Service Error (\(httpResponse.statusCode)): \(errorBody)"
+            }
         }
         
-        let responseObj = try JSONDecoder().decode(GeminiResponse.self, from: data)
-        return responseObj.candidates?.first?.content.parts.first?.text ?? "I couldn't generate a response. Please try again."
+        // If all models in the fallback array failed due to 503/429
+        return "⚠️ All safety assistant models are currently experiencing extremely high demand. Please rely on physical exit signs or call emergency services (112) directly."
     }
 }

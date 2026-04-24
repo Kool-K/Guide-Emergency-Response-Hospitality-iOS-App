@@ -13,6 +13,8 @@ struct StaffDashboardView: View {
     @State private var showingIssuesSheet = false
     @State private var toastData: ToastData?
     @State private var blueprintItem: PhotosPickerItem? = nil
+    @State private var showingBlueprint = false
+    @State private var blueprintBase64: String? = nil
     
     let timer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
     
@@ -84,6 +86,30 @@ struct StaffDashboardView: View {
                                             .font(.body.weight(.semibold))
                                             .foregroundColor(.primary)
                                         Text("Upload evacuation map for guests")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(16)
+                                .liquidGlass(cornerRadius: 16)
+                            }
+                            
+                            // View Blueprint
+                            Button(action: { showingBlueprint = true }) {
+                                HStack {
+                                    Image(systemName: "map")
+                                        .font(.title3)
+                                        .foregroundColor(Theme.primaryAccent)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("View Blueprint")
+                                            .font(.body.weight(.semibold))
+                                            .foregroundColor(.primary)
+                                        Text("View current evacuation map")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     }
@@ -332,8 +358,35 @@ struct StaffDashboardView: View {
             .sheet(isPresented: $showingIssuesSheet) {
                 issuesSheet
             }
+            .sheet(isPresented: $showingBlueprint) {
+                blueprintSheet
+            }
         }
         .toast($toastData)
+        .onChange(of: showingBlueprint) { isOpen in
+            if isOpen {
+                self.blueprintBase64 = nil
+                Task {
+                    do {
+                        if let base64 = try await SupabaseService.shared.downloadBlueprint() {
+                            DispatchQueue.main.async {
+                                self.blueprintBase64 = base64
+                            }
+                        } else {
+                            DispatchQueue.main.async {
+                                toastData = ToastData(message: "Blueprint not found.", style: .error)
+                                showingBlueprint = false
+                            }
+                        }
+                    } catch {
+                        DispatchQueue.main.async {
+                            toastData = ToastData(message: "Failed to load blueprint.", style: .error)
+                            showingBlueprint = false
+                        }
+                    }
+                }
+            }
+        }
         .onChange(of: blueprintItem) { newItem in
             Task {
                 guard let newItem = newItem else { return }
@@ -516,6 +569,30 @@ struct StaffDashboardView: View {
                     Button("Done") { showingBroadcastList = false }
                 }
             }
+        }
+    }
+    
+    // MARK: - Blueprint Sheet
+    
+    private var blueprintSheet: some View {
+        NavigationView {
+            Group {
+                if let base64 = blueprintBase64,
+                   let data = Data(base64Encoded: base64),
+                   let uiImage = UIImage(data: data) {
+                    ZoomableImageView(uiImage: uiImage)
+                        .background(Color.black.opacity(0.05))
+                } else {
+                    VStack {
+                        ProgressView()
+                            .padding()
+                        Text("Loading Blueprint...")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .navigationTitle("Hotel Blueprint")
+            .navigationBarItems(trailing: Button("Done") { showingBlueprint = false })
         }
     }
     
