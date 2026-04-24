@@ -81,6 +81,9 @@ class GeminiService: ObservableObject {
             - Provide clear, step-by-step evacuation instructions
             - Offer first aid guidance and locate exits
             - Be concise, calm, and reassuring. Keep responses under 200 words.
+            - CRITICAL AWARENESS: You are aware that the user's app dashboard contains built-in emergency tools. If the situation sounds tense or life-threatening, proactively remind the user to:
+              * Tap the large red 'SOS' button on their home screen to broadcast their location to staff.
+              * Use the quick-dial buttons for Fire (101), Police (100), or Medical (102) located on their dashboard.
             - If unsure, advise calling 112 (India emergency).
             
             \(blueprintInstruction)
