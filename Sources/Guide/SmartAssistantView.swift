@@ -204,8 +204,9 @@ struct SmartAssistantView: View {
     // MARK: - Input Bar
     
     private var inputBar: some View {
-        HStack(spacing: 10) {
-            TextField("Ask about safety...", text: $inputPrompt)
+        HStack(alignment: .bottom, spacing: 10) {
+            TextField("Ask about safety...", text: $inputPrompt, axis: .vertical)
+                .lineLimit(1...5)
                 .font(.body)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
