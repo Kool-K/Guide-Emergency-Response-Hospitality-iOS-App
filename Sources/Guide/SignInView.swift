@@ -12,185 +12,197 @@ struct SignInView: View {
             // Animated background
             AnimatedMeshBackground(primaryColor: Theme.primaryAccent)
             
-            VStack {
-                Spacer()
-                
-                // Sign-in card
-                VStack(spacing: 24) {
-                    // App icon
-                    ZStack {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .frame(width: 90, height: 90)
-                            .overlay(
+            GeometryReader { geometry in
+                ScrollView(showsIndicators: false) {
+                    VStack {
+                        Spacer(minLength: 40)
+                        
+                        // Sign-in card
+                        VStack(spacing: 24) {
+                            // App icon
+                            ZStack {
                                 Circle()
-                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                            )
-                            .shadow(color: Theme.primaryAccent.opacity(0.2), radius: 20)
-                        
-                        Image(systemName: "shield.righthalf.filled")
-                            .font(.system(size: 40))
-                            .foregroundColor(Theme.primaryAccent)
-                    }
-                    
-                    // Title
-                    VStack(spacing: 6) {
-                        Text("Guide")
-                            .font(.system(size: 42, weight: .black, design: .rounded))
-                            .foregroundColor(.primary)
-                        
-                        Text("Crisis Management & Safety")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    if showingStaffLogin {
-                        // Staff Logic
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("STAFF ACCESS")
-                                .font(.caption.bold())
-                                .foregroundColor(.secondary)
-                                .tracking(1.5)
+                                    .fill(.ultraThinMaterial)
+                                    .frame(width: 90, height: 90)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                                    )
+                                    .shadow(color: Theme.primaryAccent.opacity(0.2), radius: 20)
+                                
+                                Image(systemName: "shield.righthalf.filled")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(Theme.primaryAccent)
+                            }
                             
-                            TextField("Enter Security Code", text: $accessCode)
-                                .font(.body)
-                                .padding(14)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .fill(.ultraThinMaterial)
-                                        .overlay(
+                            // Title
+                            VStack(spacing: 6) {
+                                Text("Guide")
+                                    .font(.system(size: 42, weight: .black, design: .rounded))
+                                    .foregroundColor(.primary)
+                                
+                                Text("Crisis Management & Safety")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            if showingStaffLogin {
+                                // Staff Logic
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("STAFF ACCESS")
+                                        .font(.caption.bold())
+                                        .foregroundColor(.secondary)
+                                        .tracking(1.5)
+                                    
+                                    TextField("Enter Security Code", text: $accessCode)
+                                        .font(.body)
+                                        .padding(14)
+                                        .background(
                                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                .stroke(Color.white.opacity(0.4), lineWidth: 0.8)
+                                                .fill(.ultraThinMaterial)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                        .stroke(Color.white.opacity(0.4), lineWidth: 0.8)
+                                                )
                                         )
-                                )
-                                .autocapitalization(.none)
-                                .disableAutocorrection(true)
-                        }
-                        .padding(.top, 10)
-                        
-                        if let error = errorMessage {
-                            HStack(spacing: 6) {
-                                Image(systemName: "exclamationmark.circle.fill")
-                                    .font(.caption)
-                                Text(error)
-                                    .font(.footnote)
-                            }
-                            .foregroundColor(Theme.destructive)
-                            .padding(.top, -8)
-                        }
-                        
-                        Button(action: {
-                            Task { await handleSignIn() }
-                        }) {
-                            HStack {
-                                if isLoading {
-                                    ProgressView().tint(.white)
-                                } else {
-                                    Text("Unlock Access")
-                                        .font(.headline)
-                                        .fontWeight(.bold)
-                                    Image(systemName: "lock.open.fill")
-                                        .font(.subheadline)
+                                        .autocapitalization(.none)
+                                        .disableAutocorrection(true)
                                 }
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(LinearGradient(colors: [Theme.primaryAccent, Theme.primaryAccent.opacity(0.85)], startPoint: .leading, endPoint: .trailing))
-                            )
-                            .shadow(color: Theme.primaryAccent.opacity(0.35), radius: 12, x: 0, y: 6)
-                        }
-                        .disabled(isLoading || accessCode.isEmpty)
-                        
-                        Button(action: {
-                            withAnimation {
-                                showingStaffLogin = false
-                                errorMessage = nil
-                                accessCode = ""
-                            }
-                        }) {
-                            Text("Cancel")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                    } else {
-                        // Standard Selection
-                        VStack(spacing: 12) {
-                            Button(action: {
-                                Task { await handleSignIn() }
-                            }) {
-                                HStack {
-                                    if isLoading {
-                                        ProgressView().tint(.white)
-                                    } else {
-                                        Text("Guest Login")
-                                            .font(.headline)
-                                            .fontWeight(.bold)
-                                        Image(systemName: "arrow.right")
-                                            .font(.subheadline)
+                                .padding(.top, 10)
+                                
+                                if let error = errorMessage {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "exclamationmark.circle.fill")
+                                            .font(.caption)
+                                        Text(error)
+                                            .font(.footnote)
+                                    }
+                                    .foregroundColor(Theme.destructive)
+                                    .padding(.top, -8)
+                                }
+                                
+                                Button(action: {
+                                    Task { await handleSignIn() }
+                                }) {
+                                    HStack {
+                                        if isLoading {
+                                            ProgressView().tint(.white)
+                                        } else {
+                                            Text("Unlock Access")
+                                                .font(.headline)
+                                                .fontWeight(.bold)
+                                            Image(systemName: "lock.open.fill")
+                                                .font(.subheadline)
+                                        }
+                                    }
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .fill(LinearGradient(colors: [Theme.primaryAccent, Theme.primaryAccent.opacity(0.85)], startPoint: .leading, endPoint: .trailing))
+                                    )
+                                    .shadow(color: Theme.primaryAccent.opacity(0.35), radius: 12, x: 0, y: 6)
+                                }
+                                .disabled(isLoading || accessCode.isEmpty)
+                                
+                                Button(action: {
+                                    withAnimation {
+                                        showingStaffLogin = false
+                                        errorMessage = nil
+                                        accessCode = ""
+                                    }
+                                }) {
+                                    Text("Cancel")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                            } else {
+                                // Standard Selection
+                                VStack(spacing: 12) {
+                                    // Primary action — Guest Login
+                                    Button(action: {
+                                        Task { await handleSignIn() }
+                                    }) {
+                                        HStack(spacing: 8) {
+                                            if isLoading {
+                                                ProgressView().tint(.white)
+                                            } else {
+                                                Text("Guest Login")
+                                                    .font(.headline)
+                                                Spacer()
+                                                Image(systemName: "arrow.right")
+                                                    .font(.subheadline.weight(.semibold))
+                                            }
+                                        }
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 16)
+                                        .padding(.horizontal, 20)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .fill(LinearGradient(colors: [Theme.primaryAccent, Theme.primaryAccent.opacity(0.85)], startPoint: .leading, endPoint: .trailing))
+                                        )
+                                        .shadow(color: Theme.primaryAccent.opacity(0.35), radius: 12, x: 0, y: 6)
+                                    }
+                                    .disabled(isLoading)
+                                    
+                                    // Secondary action — Staff Login
+                                    Button(action: {
+                                        withAnimation {
+                                            showingStaffLogin = true
+                                        }
+                                    }) {
+                                        HStack(spacing: 8) {
+                                            Text("Staff Login")
+                                                .font(.headline)
+                                            Spacer()
+                                            Image(systemName: "lock.fill")
+                                                .font(.subheadline.weight(.semibold))
+                                        }
+                                        .foregroundColor(Theme.primaryAccent)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 16)
+                                        .padding(.horizontal, 20)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .fill(.ultraThinMaterial)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                        .stroke(Theme.primaryAccent.opacity(0.5), lineWidth: 1)
+                                                )
+                                        )
                                     }
                                 }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .fill(LinearGradient(colors: [Theme.primaryAccent, Theme.primaryAccent.opacity(0.85)], startPoint: .leading, endPoint: .trailing))
-                                )
-                                .shadow(color: Theme.primaryAccent.opacity(0.35), radius: 12, x: 0, y: 6)
-                            }
-                            .disabled(isLoading)
-                            
-                            Button(action: {
-                                withAnimation {
-                                    showingStaffLogin = true
+                                .padding(.top, 10)
+                                
+                                if let error = errorMessage {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "exclamationmark.circle.fill")
+                                            .font(.caption)
+                                        Text(error)
+                                            .font(.footnote)
+                                    }
+                                    .foregroundColor(Theme.destructive)
+                                    .padding(.top, 4)
                                 }
-                            }) {
-                                HStack {
-                                    Text("Staff Login")
-                                        .font(.headline)
-                                        .fontWeight(.bold)
-                                }
-                                .foregroundColor(Theme.primaryAccent)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .fill(.ultraThinMaterial)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                                .stroke(Theme.primaryAccent.opacity(0.5), lineWidth: 1)
-                                        )
-                                )
                             }
                         }
-                        .padding(.top, 10)
+                        .padding(32)
+                        .liquidGlass(cornerRadius: 28)
+                        .frame(maxWidth: 450)
+                        .padding(.horizontal, 24)
                         
-                        if let error = errorMessage {
-                            HStack(spacing: 6) {
-                                Image(systemName: "exclamationmark.circle.fill")
-                                    .font(.caption)
-                                Text(error)
-                                    .font(.footnote)
-                            }
-                            .foregroundColor(Theme.destructive)
-                            .padding(.top, 4)
-                        }
+                        Spacer(minLength: 40)
+                        
+                        Text("Powered by Guide • Emergency Response System")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.bottom, 20)
                     }
+                    .frame(maxWidth: .infinity, minHeight: geometry.size.height)
                 }
-                .padding(32)
-                .liquidGlass(cornerRadius: 28)
-                .padding(.horizontal, 24)
-                
-                Spacer()
-                
-                Text("Powered by Guide • Emergency Response System")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .padding(.bottom, 20)
             }
         }
     }

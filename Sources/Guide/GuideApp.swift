@@ -9,7 +9,6 @@ struct GuideApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(userSession)
-                .preferredColorScheme(.light)
                 .onAppear {
                     requestAllPermissions()
                 }

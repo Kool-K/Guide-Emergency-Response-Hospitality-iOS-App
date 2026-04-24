@@ -70,17 +70,17 @@ struct LiquidGlass: ViewModifier {
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(borderOpacity),
-                                Color.white.opacity(borderOpacity * 0.3)
+                                Color.primary.opacity(borderOpacity * 0.35),
+                                Color.primary.opacity(borderOpacity * 0.08)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1
+                        lineWidth: 0.8
                     )
             )
-            .shadow(color: Color.black.opacity(shadowIntensity), radius: 16, x: 0, y: 8)
-            .shadow(color: Color.black.opacity(shadowIntensity * 0.3), radius: 2, x: 0, y: 1)
+            .shadow(color: Color.black.opacity(shadowIntensity), radius: 20, x: 0, y: 8)
+            .shadow(color: Color.black.opacity(shadowIntensity * 0.4), radius: 2, x: 0, y: 1)
     }
 }
 
@@ -105,8 +105,8 @@ struct LiquidGlassButton: ViewModifier {
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(0.5),
-                                Color.white.opacity(0.15)
+                                Color.primary.opacity(0.18),
+                                Color.primary.opacity(0.04)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -114,7 +114,7 @@ struct LiquidGlassButton: ViewModifier {
                         lineWidth: 0.8
                     )
             )
-            .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
+            .shadow(color: Color.black.opacity(0.10), radius: 14, x: 0, y: 6)
     }
 }
 
@@ -142,25 +142,29 @@ struct AnimatedMeshBackground: View {
     
     var body: some View {
         ZStack {
+            // Use Color(.systemBackground) so it adapts to dark/light mode
+            Color(.systemBackground)
+                .ignoresSafeArea()
+            
             LinearGradient(
                 colors: [
-                    primaryColor.opacity(0.15),
-                    Theme.background,
-                    primaryColor.opacity(0.08)
+                    primaryColor.opacity(0.12),
+                    Color.clear,
+                    primaryColor.opacity(0.06)
                 ],
                 startPoint: animate ? .topLeading : .topTrailing,
                 endPoint: animate ? .bottomTrailing : .bottomLeading
             )
             
-            // Floating orbs
+            // Floating orbs — opacity is already low, looks good in both modes
             Circle()
-                .fill(primaryColor.opacity(0.08))
+                .fill(primaryColor.opacity(0.10))
                 .frame(width: 300, height: 300)
                 .blur(radius: 80)
                 .offset(x: animate ? 50 : -50, y: animate ? -80 : 80)
             
             Circle()
-                .fill(primaryColor.opacity(0.06))
+                .fill(primaryColor.opacity(0.07))
                 .frame(width: 200, height: 200)
                 .blur(radius: 60)
                 .offset(x: animate ? -70 : 70, y: animate ? 100 : -100)

@@ -74,6 +74,7 @@ struct SmartAssistantView: View {
                 // Input bar
                 inputBar
             }
+            .frame(maxWidth: 800)
         }
         .navigationTitle("Safety Assistant")
         .navigationBarTitleDisplayMode(.inline)

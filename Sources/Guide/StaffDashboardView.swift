@@ -220,6 +220,8 @@ struct StaffDashboardView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 20)
                         .padding(.bottom, 40)
+                        .frame(maxWidth: 600)
+                        .frame(maxWidth: .infinity)
                     }
                 }
                 
@@ -233,60 +235,96 @@ struct StaffDashboardView: View {
             .navigationTitle("Staff")
             .navigationBarTitleDisplayMode(.large)
             .navigationBarItems(trailing: Button(action: { session.logout() }) {
-                HStack(spacing: 4) {
-                    Text("Log Out")
-                        .font(.subheadline)
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                }
-                .foregroundColor(Theme.primaryAccent)
-            })
-            .alert("Emergency Broadcast", isPresented: $showingBroadcastPrompt) {
-                TextField("Enter emergency message", text: $broadcastMessage)
-                Button("Broadcast") {
-                    Task {
-                        let msg = broadcastMessage
-                        broadcastMessage = ""
-                        
-                        do {
-                            let _ = try await SupabaseService.shared.broadcastAlert(message: msg, isCritical: true)
-                            DispatchQueue.main.async {
-                                toastData = ToastData(message: "✓ CRITICAL alert broadcast successfully", style: .success)
-                            }
-                        } catch {
-                            DispatchQueue.main.async {
-                                toastData = ToastData(message: "✗ Failed to broadcast: \(error.localizedDescription)", style: .error)
-                            }
-                        }
-                        fetchData()
-                    }
-                }
-                Button("Cancel", role: .cancel) { broadcastMessage = "" }
-            } message: {
-                Text("Critical alerts reach all users immediately and override their screen.")
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .foregroundColor(Theme.primaryAccent)
             }
-            .alert("Send Message to Guests", isPresented: $showingSendPrompt) {
-                TextField("Enter normal message", text: $sendMessageText)
-                Button("Send") {
-                    Task {
-                        let msg = sendMessageText
-                        sendMessageText = ""
-                        
-                        do {
-                            let _ = try await SupabaseService.shared.broadcastAlert(message: msg, isCritical: false)
-                            DispatchQueue.main.async {
-                                toastData = ToastData(message: "✓ Message sent to guests", style: .success)
-                            }
-                        } catch {
-                            DispatchQueue.main.async {
-                                toastData = ToastData(message: "✗ Failed to send message: \(error.localizedDescription)", style: .error)
+            .accessibilityLabel("Log Out"))
+            .sheet(isPresented: $showingBroadcastPrompt) {
+                NavigationView {
+                    Form {
+                        Section(header: Text("Critical Alert"), footer: Text("Critical alerts reach all users immediately and override their screen.")) {
+                            TextField("Enter emergency message", text: $broadcastMessage, axis: .vertical)
+                                .lineLimit(3...6)
+                        }
+                    }
+                    .navigationTitle("Emergency Broadcast")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Cancel") {
+                                broadcastMessage = ""
+                                showingBroadcastPrompt = false
                             }
                         }
-                        fetchData()
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Broadcast") {
+                                showingBroadcastPrompt = false
+                                Task {
+                                    let msg = broadcastMessage
+                                    broadcastMessage = ""
+                                    do {
+                                        let _ = try await SupabaseService.shared.broadcastAlert(message: msg, isCritical: true)
+                                        DispatchQueue.main.async {
+                                            toastData = ToastData(message: "✓ CRITICAL alert broadcast successfully", style: .success)
+                                        }
+                                    } catch {
+                                        DispatchQueue.main.async {
+                                            toastData = ToastData(message: "✗ Failed to broadcast: \(error.localizedDescription)", style: .error)
+                                        }
+                                    }
+                                    fetchData()
+                                }
+                            }
+                            .fontWeight(.bold)
+                            .foregroundColor(.red)
+                            .disabled(broadcastMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
                     }
                 }
-                Button("Cancel", role: .cancel) { sendMessageText = "" }
-            } message: {
-                Text("Normal messages will be delivered to guest inboxes.")
+                .presentationDetents([.medium, .large])
+            }
+            .sheet(isPresented: $showingSendPrompt) {
+                NavigationView {
+                    Form {
+                        Section(header: Text("Message Details"), footer: Text("Normal messages will be delivered to guest inboxes.")) {
+                            TextField("Enter normal message", text: $sendMessageText, axis: .vertical)
+                                .lineLimit(3...6)
+                        }
+                    }
+                    .navigationTitle("Send to Guests")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Cancel") {
+                                sendMessageText = ""
+                                showingSendPrompt = false
+                            }
+                        }
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Send") {
+                                showingSendPrompt = false
+                                Task {
+                                    let msg = sendMessageText
+                                    sendMessageText = ""
+                                    do {
+                                        let _ = try await SupabaseService.shared.broadcastAlert(message: msg, isCritical: false)
+                                        DispatchQueue.main.async {
+                                            toastData = ToastData(message: "✓ Message sent to guests", style: .success)
+                                        }
+                                    } catch {
+                                        DispatchQueue.main.async {
+                                            toastData = ToastData(message: "✗ Failed to send message: \(error.localizedDescription)", style: .error)
+                                        }
+                                    }
+                                    fetchData()
+                                }
+                            }
+                            .fontWeight(.bold)
+                            .disabled(sendMessageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                    }
+                }
+                .presentationDetents([.medium, .large])
             }
             .sheet(isPresented: $showingBroadcastList) {
                 broadcastsSheet

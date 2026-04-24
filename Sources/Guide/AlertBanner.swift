@@ -67,6 +67,7 @@ struct AlertBanner: View {
             color: (isCritical ? Color.red : Theme.destructive).opacity(0.4),
             radius: isCritical ? 20 : 10, x: 0, y: isCritical ? 8 : 4
         )
+        .frame(maxWidth: 600)
         .padding(.horizontal, 16)
         .onAppear {
             if isCritical {

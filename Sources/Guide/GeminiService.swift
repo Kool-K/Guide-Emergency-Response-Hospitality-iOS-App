@@ -4,7 +4,7 @@ class GeminiService: ObservableObject {
     static let shared = GeminiService()
     
     private let apiKey = Config.geminiAPIKey
-    private let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    private let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
     
     /// Generate a smart response, optionally including a hotel blueprint image for spatial guidance.
     /// When `blueprintBase64` is provided, Gemini Vision analyses the blueprint to give

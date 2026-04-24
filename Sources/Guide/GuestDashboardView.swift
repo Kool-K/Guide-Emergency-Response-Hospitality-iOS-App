@@ -184,6 +184,8 @@ struct GuestDashboardView: View {
                         
                         Spacer(minLength: 40)
                     }
+                    .frame(maxWidth: 600)
+                    .frame(maxWidth: .infinity) // Centering hack for ScrollView
                 }
                 
                 // Alert banner overlay
@@ -196,13 +198,10 @@ struct GuestDashboardView: View {
             .navigationTitle("Welcome, Guest")
             .navigationBarTitleDisplayMode(.large)
             .navigationBarItems(trailing: Button(action: { session.logout() }) {
-                HStack(spacing: 4) {
-                    Text("Log Out")
-                        .font(.subheadline)
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                }
-                .foregroundColor(Theme.primaryAccent)
-            })
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .foregroundColor(Theme.primaryAccent)
+            }
+            .accessibilityLabel("Log Out"))
             .sheet(isPresented: $showingBlueprint) {
                 blueprintSheet
             }
@@ -228,35 +227,53 @@ struct GuestDashboardView: View {
                     isPresented: $showingDialerSheet
                 )
             }
-            .alert("Report Issue", isPresented: $showingReportIssue) {
-                TextField("Room Number (Required)", text: $roomNumber)
-                TextField("Describe the issue...", text: $issueText)
-                Button("Submit") {
-                    guard !roomNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                        toastData = ToastData(message: "✗ Room Number is required", style: .error)
-                        return
+            .sheet(isPresented: $showingReportIssue) {
+                NavigationView {
+                    Form {
+                        Section(header: Text("Details"), footer: Text("Please mention your room number and describe the issue.")) {
+                            TextField("Room Number (Required)", text: $roomNumber)
+                            TextField("Describe the issue...", text: $issueText, axis: .vertical)
+                                .lineLimit(3...6)
+                        }
                     }
-                    Task {
-                        do {
-                            try await SupabaseService.shared.reportGuestIssue(description: issueText, roomNumber: roomNumber)
-                            DispatchQueue.main.async {
-                                toastData = ToastData(message: "✓ Issue reported to staff successfully", style: .success)
+                    .navigationTitle("Report Issue")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Cancel") {
                                 issueText = ""
                                 roomNumber = ""
+                                showingReportIssue = false
                             }
-                        } catch {
-                            DispatchQueue.main.async {
-                                toastData = ToastData(message: "✗ Failed to report issue: \(error.localizedDescription)", style: .error)
+                        }
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Submit") {
+                                guard !roomNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                                    toastData = ToastData(message: "✗ Room Number is required", style: .error)
+                                    return
+                                }
+                                showingReportIssue = false
+                                Task {
+                                    do {
+                                        try await SupabaseService.shared.reportGuestIssue(description: issueText, roomNumber: roomNumber)
+                                        DispatchQueue.main.async {
+                                            toastData = ToastData(message: "✓ Issue reported to staff successfully", style: .success)
+                                            issueText = ""
+                                            roomNumber = ""
+                                        }
+                                    } catch {
+                                        DispatchQueue.main.async {
+                                            toastData = ToastData(message: "✗ Failed to report issue: \(error.localizedDescription)", style: .error)
+                                        }
+                                    }
+                                }
                             }
+                            .fontWeight(.bold)
+                            .disabled(roomNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                     }
                 }
-                Button("Cancel", role: .cancel) {
-                    issueText = ""
-                    roomNumber = ""
-                }
-            } message: {
-                Text("Please mention your room number and describe the issue.")
+                .presentationDetents([.medium, .large])
             }
         }
         .toast($toastData)

@@ -6,21 +6,14 @@ struct ContentView: View {
     var body: some View {
         Group {
             if session.isAuthenticated {
-                TabView {
-                    switch session.role {
-                    case .guest:
-                        GuestDashboardView()
-                            .tabItem {
-                                Label("Home", systemImage: "house.fill")
-                            }
-                    case .staff:
-                        StaffDashboardView()
-                            .tabItem {
-                                Label("Home", systemImage: "house.fill")
-                            }
-                    }
+                // Single-role views do not need a tab bar —
+                // showing a tab bar with one item is not iOS-native.
+                switch session.role {
+                case .guest:
+                    GuestDashboardView()
+                case .staff:
+                    StaffDashboardView()
                 }
-                .tint(Theme.primaryAccent)
             } else {
                 SignInView()
             }
