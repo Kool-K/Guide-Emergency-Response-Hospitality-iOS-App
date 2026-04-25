@@ -253,9 +253,15 @@ struct GuestDashboardView: View {
                                     return
                                 }
                                 showingReportIssue = false
+                                
+                                // Local Keyword Heuristic to avoid wasting API tokens
+                                let lowercasedText = issueText.lowercased()
+                                let highRiskKeywords = ["fire", "smoke", "blood", "medical", "police", "gun", "thief", "break in", "stuck", "emergency", "urgent", "heart", "breathe", "choking"]
+                                let calculatedSeverity = highRiskKeywords.contains(where: lowercasedText.contains) ? "High" : "Normal"
+                                
                                 Task {
                                     do {
-                                        try await SupabaseService.shared.reportGuestIssue(description: issueText, roomNumber: roomNumber)
+                                        try await SupabaseService.shared.reportGuestIssue(description: issueText, severity: calculatedSeverity, roomNumber: roomNumber)
                                         DispatchQueue.main.async {
                                             toastData = ToastData(message: "✓ Issue reported to staff successfully", style: .success)
                                             issueText = ""
