@@ -11,7 +11,7 @@ The app meaningfully integrates **Google Gemini 2.0 Flash (Vision)** to power a 
 ## 🔗 Quick Links
 
 - **▶️ Demo Video (YouTube)**: [Watch on YouTube](https://youtu.be/KED9O8Dfcxw?si=jrQW9M49cOYRm9Qu)
-- **🚀 Live Preview (Appetize.io)**: [View Demo](https://appetize.io/app/b_g2yygyljyegaqlr6lvyrit7334)
+- **🚀 Live Preview (Appetize.io)**: [View Demo](https://appetize.io/app/b_2omlcvcpvwmf6x5ek2n4pare6a)
 - **✍️ Blog Post (Dev.to)**: [Read the Story](https://dev.to/ketaki_17/building-guide-a-reference-based-ai-assistant-for-crisis-response-4lhk)
 
 ---
